@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Step Score</title>
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--tx:#1b1f1a;--mu:#6b7469;--ac:#1f8a4c;--bd:#e1e5dd;--up:#1f8a4c;--dn:#c0392b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121512;--card:#1b1f1a;--tx:#eef1ec;--mu:#9aa496;--ac:#4cc77f;--bd:#2c332a;--up:#4cc77f;--dn:#ef6b5d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px}
+h1{margin:0;font-size:28px;letter-spacing:-.5px}h1 span{color:var(--ac)}
+.sub{color:var(--mu);margin:2px 0 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:14px}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);margin:0 0 10px}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--bd);cursor:pointer}
+.row:first-of-type{border-top:0}
+.rk{width:24px;color:var(--mu);font-weight:600}.nm{flex:1;font-weight:600}
+.sc{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.dl{width:38px;font-size:12px;text-align:right}.up{color:var(--up)}.dn{color:var(--dn)}.mu{color:var(--mu)}
+.det{padding:0 0 10px 34px;display:none;font-size:13px}.det.on{display:block}
+.st{display:flex;gap:14px;flex-wrap:wrap;color:var(--mu);margin-bottom:6px}.st b{color:var(--tx)}
+.hl{display:flex;justify-content:space-between;color:var(--mu);padding:2px 0}
+input,textarea,select{width:100%;padding:8px;border:1px solid var(--bd);border-radius:9px;background:var(--bg);color:var(--tx);font:inherit}
+textarea{min-height:120px}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+button{background:var(--ac);color:#fff;border:0;border-radius:9px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer;margin-top:8px}
+button.g{background:none;color:var(--mu);padding:2px 6px;margin:0;font-weight:500}
+.cl{display:grid;grid-template-columns:1fr 64px auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--bd);font-size:13px}
+.cl input{padding:5px 7px}.note{font-size:12px;color:var(--mu);margin-top:6px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}body:not(.own) .edit{display:none}.tabs button{margin:0;background:var(--card);color:var(--mu);border:1px solid var(--bd)}.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+</style></head><body><main>
+<h1>Step <span>Score</span></h1>
+<div class="sub" id="sub">Loading…</div>
+<div class="tabs"><button id="tc" class="on">Career</button><button id="tf">Monthly</button><button id="tm">Medals</button></div><div id="tab-c"><div class="card"><h2>Leaderboard</h2><div id="lb"></div><div class="note">Career points: every challenge counts forever and your score only goes up. Tap a name for their history.</div></div>
+<div class="card edit"><h2>Add a challenge</h2>
+<div class="two"><input id="cn" placeholder="Name (e.g. August 10-day)"><select id="ct0"><option value="1">Challenge (stakes 1.0)</option><option value="1.5">Battle Royale (1.5)</option><option value="1.25">Team challenge (1.25)</option><option value="2">Monthly (2.0)</option></select></div>
+<textarea id="ct" placeholder="Final standings, one name per line, 1st place first. Step counts after a name are ignored."></textarea>
+<input id="cw" placeholder="Team win? Names of the winning team, comma separated (optional)" style="margin-top:8px">
+<button id="add">Add challenge</button><div class="note" id="msg"></div></div>
+<div class="card"><h2>Challenges &amp; stakes</h2><div id="cl"></div><div class="note">Stakes multiply the points a challenge is worth. Change a number and everything recalculates.</div></div>
+<div class="card"><h2>How points work</h2><div class="note" style="margin:0;font-size:13px">Per challenge: 1 for entering, up to 6 more for placement (1st = full, last = 0), and win/podium bonuses (+3 / +1.5 / +0.8). Winning teams share a bonus pool, split by each member’s share of the team’s steps, so the biggest contributor gets the most. Everything is multiplied by the challenge’s stakes and a small field-size factor, so beating more people is worth more.</div></div>
+</div>
+<div id="tab-f" style="display:none">
+<div class="card"><h2>Monthly rating</h2><div id="flb"></div><div class="note">Your recent stepping, UTR-style. Each month your daily average is compared with the group’s, and recent months count most. 5.0 = group average. Tap a name for their months.</div></div>
+<div class="card edit"><h2>Add or update a month</h2><div class="two"><input id="mm" type="month"><input id="md" type="number" min="1" max="31" placeholder="Days counted"></div><textarea id="mt" placeholder="One person per line with their monthly total:&#10;Davis 181,989&#10;Amy 172,023"></textarea><button id="madd">Save month</button><div class="note" id="mmsg">Saving a month that already exists replaces it, so you can re-paste the current month as it grows. For a partial month, set days counted to the days so far.</div></div>
+<div class="card"><h2>Recency</h2><div class="note" style="margin:0">Last month counts 70% as much as this month, the month before 49%, and so on. A month someone has no data for is skipped for them.</div></div>
+</div>
+<div id="tab-m" style="display:none"><div class="card"><h2>Medals</h2><div id="mlb"></div><div class="note">🥇 1st place · 🎖️ team win · 🥈 2nd place. One medal per finish, no points.</div></div></div>
+</main>
+<script>
+let comps=[],db=null,open={},OWN=false;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ord=n=>n+(["st","nd","rd"][n-1]||"th");
+function compute(cs){
+  const P={};
+  cs.forEach(c=>{const N=c.results.length,k=(+c.stakes||1)*Math.sqrt(N/10);
+    c.results.forEach((nm,i)=>{const p=i+1,pct=N>1?(N-p)/(N-1):0;
+      let pts=k*(1+6*pct+(p==1?3:p==2?1.5:p==3?.8:0))+((c.winners||[]).includes(nm)?1*(+c.stakes||1)*(c.shares&&c.shares[nm]!=null?c.shares[nm]*c.winners.length:1):0);
+      const o=P[nm]=P[nm]||{name:nm,total:0,n:0,w:0,pod:0,log:[]};
+      o.total+=pts;o.n++;o.w+=p==1;o.pod+=p<=3;o.log.push({id:c.id,c:c.name,p,N,pts})})});
+  return Object.values(P).sort((a,b)=>b.total-a.total);
+}
+function render(){renderM();
+  const cs=[...comps].sort((a,b)=>a.seq-b.seq),now=compute(cs),prev=compute(cs.slice(0,-1)),pr={};
+  prev.forEach((p,i)=>pr[p.name]=i);
+  $("sub").textContent=cs.length?`${cs.length} challenges · ${now.length} players`:"No challenges yet.";
+  $("lb").innerHTML=now.map((p,i)=>{
+    let d='<span class="mu">–</span>';
+    if(cs.length>1){if(!(p.name in pr))d='<span class="up">new</span>';else{const x=pr[p.name]-i;if(x>0)d=`<span class="up">▲${x}</span>`;else if(x<0)d=`<span class="dn">▼${-x}</span>`}}
+    return`<div class="row" data-n="${esc(p.name)}"><span class="rk">${i+1}</span><span class="nm">${esc(p.name)}</span><span class="dl">${d}</span><span class="sc">${p.total.toFixed(1)}</span></div>
+    <div class="det ${open[p.name]?"on":""}"><div class="st"><span><b>${p.w}</b> wins</span><span><b>${p.pod}</b> podiums</span><span><b>${p.n}</b> of ${cs.length} entered</span><span>best finish <b>${ord(Math.min(...p.log.map(l=>l.p)))}</b></span></div>
+    ${[...cs].reverse().map(c=>{const l=p.log.find(x=>x.id==c.id);return l?`<div class="hl"><span>${["🥇","🥈","🥉"][l.p-1]||""} ${esc(c.name)} · ${ord(l.p)} of ${l.N} · ${c.stakes}x${(c.winners||[]).includes(p.name)?" · team win":""}</span><span>+${l.pts.toFixed(1)}</span></div>`:`<div class="hl"><span>${esc(c.name)} · did not enter</span><span>–</span></div>`}).join("")}</div>`}).join("");
+  document.querySelectorAll(".row").forEach(r=>r.onclick=()=>{open[r.dataset.n]=!open[r.dataset.n];r.nextElementSibling.classList.toggle("on")});
+  $("cl").innerHTML=[...cs].reverse().map(c=>`<div class="cl"><input ${OWN?"":"disabled"} value="${esc(c.name)}" data-f="name" data-id="${c.id}"><input ${OWN?"":"disabled"} type="number" step="0.25" min="0" value="${c.stakes}" data-f="stakes" data-id="${c.id}">${OWN?`<button class="g" data-del="${c.id}">delete</button>`:"<span></span>"}</div>`).join("");
+  document.querySelectorAll("[data-f]").forEach(i=>i.onchange=()=>{const c=comps.find(x=>x.id==i.dataset.id);if(c)save({...c,[i.dataset.f]:i.dataset.f=="stakes"?+i.value:i.value})});
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this challenge?"))del(b.dataset.del)});
+}
+const loadL=()=>{try{comps=JSON.parse(localStorage.getItem("ss2")||"[]")}catch(e){comps=[]}},saveL=()=>{try{localStorage.setItem("ss2",JSON.stringify(comps))}catch(e){}};
+async function save(c){if(db){try{await db.collection("comps").doc(c.id).set(c);return}catch(e){}}comps=comps.filter(x=>x.id!=c.id).concat(c);saveL();render()}
+async function del(id){if(db){try{await db.collection("comps").doc(id).delete();return}catch(e){}}comps=comps.filter(x=>x.id!=id);saveL();render()}
+$("add").onclick=async()=>{
+  const known={};compute(comps).forEach(p=>known[p.name.toLowerCase()]=p.name);const seen=new Set(),res=[];
+  $("ct").value.split("\n").forEach(l=>{const n=l.replace(/^\s*\d+\s*[\.\)\-:]?\s*/,"").replace(/[\s,\-:]+[\d,\.]{4,}\s*(steps)?\s*$/i,"").trim();
+    if(!n||seen.has(n.toLowerCase()))return;seen.add(n.toLowerCase());res.push(known[n.toLowerCase()]||n)});
+  if(res.length<2){$("msg").textContent="Need at least 2 names, one per line.";return}
+  const win=$("cw").value.split(",").map(s=>s.trim().toLowerCase()).filter(Boolean).map(s=>known[s]||s);
+  const seq=Math.max(0,...comps.map(c=>c.seq))+1;
+  await save({id:"c"+Date.now(),name:$("cn").value.trim()||"Challenge "+seq,seq,stakes:+$("ct0").value,results:res,winners:win});
+  $("ct").value="";$("cn").value="";$("cw").value="";$("msg").textContent="Added.";
+};
+let months=[],openF={};
+function mrate(ms){
+  const P={};
+  ms.forEach((m,mi)=>{const e=Object.entries(m.totals).map(([n,t])=>[n,t/m.days]),mean=e.reduce((a,x)=>a+x[1],0)/e.length,w=Math.pow(.7,ms.length-1-mi);
+    e.forEach(([n,a])=>{const o=P[n]=P[n]||{name:n,sw:0,sr:0,sa:0,log:[]};o.sw+=w;o.sr+=w*a/mean;o.sa+=w*a;o.log.push({label:m.label,a,r:a/mean})})});
+  return Object.values(P).map(o=>({...o,rating:5*o.sr/o.sw,avg:o.sa/o.sw})).sort((a,b)=>b.rating-a.rating);
+}
+function renderF(){
+  const ml=[...months].sort((a,b)=>a.id.localeCompare(b.id)),now=mrate(ml),prev=mrate(ml.slice(0,-1)),pr={};
+  prev.forEach((p,i)=>pr[p.name]=i);
+  $("flb").innerHTML=now.length?now.map((p,i)=>{
+    let d='<span class="mu">–</span>';
+    if(ml.length>1){const x=(p.name in pr)?pr[p.name]-i:0;if(x>0)d=`<span class="up">▲${x}</span>`;else if(x<0)d=`<span class="dn">▼${-x}</span>`}
+    return`<div class="row" data-fn="${esc(p.name)}"><span class="rk">${i+1}</span><span class="nm">${esc(p.name)}</span><span class="dl">${d}</span><span class="sc">${p.rating.toFixed(1)}</span></div>
+    <div class="det ${openF[p.name]?"on":""}"><div class="st"><span><b>${Math.round(p.avg).toLocaleString()}</b> weighted avg steps/day</span><span><b>${p.log.length}</b> months</span></div>
+    ${[...p.log].reverse().map(l=>`<div class="hl"><span>${esc(l.label)} · ${Math.round(l.a).toLocaleString()}/day</span><span>${l.r>=1?"+":""}${Math.round((l.r-1)*100)}% vs group</span></div>`).join("")}</div>`}).join(""):'<span class="mu">No months yet.</span>';
+  document.querySelectorAll("[data-fn]").forEach(r=>r.onclick=()=>{openF[r.dataset.fn]=!openF[r.dataset.fn];r.nextElementSibling.classList.toggle("on")});
+}
+let openW={};
+function renderW(){
+  const cs=[...comps].sort((a,b)=>a.seq-b.seq),P={};
+  cs.forEach(c=>c.results.forEach((n,i)=>{const o=P[n]=P[n]||{name:n,w:0,s:0,t:0,tw:0,won:[]};if(i==0){o.w++;o.won.push(c.name)}else if(i==1)o.s++;else if(i==2)o.t++;if((c.winners||[]).includes(n))o.tw++}));
+  const L=Object.values(P).sort((a,b)=>b.w-a.w||b.s-a.s||b.t-a.t||a.name.localeCompare(b.name));
+  $("wlb").innerHTML=L.map(p=>{const r=L.findIndex(x=>x.w==p.w)+1;
+    return`<div class="row" data-wn="${esc(p.name)}"><span class="rk">${r}</span><span class="nm">${esc(p.name)}</span><span class="sc">${p.w}</span></div><div class="det ${openW[p.name]?"on":""}"><div class="st"><span><b>${p.s}</b> second places</span><span><b>${p.t}</b> third places</span><span><b>${p.tw}</b> team wins</span></div>${p.won.length?[...p.won].reverse().map(n=>`<div class="hl"><span>🥇 ${esc(n)}</span></div>`).join(""):'<div class="hl"><span>No wins yet</span></div>'}</div>`}).join("");
+  document.querySelectorAll("[data-wn]").forEach(r=>r.onclick=()=>{openW[r.dataset.wn]=!openW[r.dataset.wn];r.nextElementSibling.classList.toggle("on")});
+}
+function renderM(){
+  const P={};
+  comps.forEach(c=>c.results.forEach((n,i)=>{const o=P[n]=P[n]||{name:n,g:0,s:0,t:0};if(!(c.winners&&c.winners.length)){if(i==0)o.g++;else if(i==1)o.s++}if((c.winners||[]).includes(n))o.t++}));
+  const L=Object.values(P).sort((a,b)=>b.g-a.g||b.s-a.s||b.t-a.t||a.name.localeCompare(b.name));
+  $("mlb").innerHTML=L.map(p=>`<div class="row" style="cursor:default;gap:14px"><span class="nm" style="flex:0 0 auto;min-width:70px">${esc(p.name)}</span><span style="flex:1;font-size:20px;letter-spacing:2px;text-align:right;overflow-wrap:anywhere">${"🥇".repeat(p.g)}${"🎖️".repeat(p.t)}${"🥈".repeat(p.s)}</span></div>`).join("");
+}
+function tab(i){["c","f","m"].forEach((k,j)=>{$("tab-"+k).style.display=j==i?"":"none";$("t"+k).classList.toggle("on",j==i)})}
+$("tc").onclick=()=>tab(0);$("tf").onclick=()=>tab(1);$("tm").onclick=()=>tab(2);
+$("mm").onchange=()=>{const v=$("mm").value;if(!v)return;const[y,m]=v.split("-").map(Number),n=new Date();$("md").value=(y==n.getFullYear()&&m==n.getMonth()+1)?n.getDate():new Date(y,m,0).getDate()};
+$("mm").value=new Date().toISOString().slice(0,7);$("mm").onchange();
+$("madd").onclick=async()=>{
+  const id=$("mm").value,days=+$("md").value;if(!id||!days){$("mmsg").textContent="Pick a month and the days counted.";return}
+  const known={};[...compute(comps).map(p=>p.name),...months.flatMap(m=>Object.keys(m.totals))].forEach(n=>known[n.toLowerCase()]=n);
+  const totals={};
+  $("mt").value.split("\n").forEach(l=>{const m=l.match(/^(.*?)[\s:,\-]+([\d,]{4,})\s*(steps)?\s*$/i);if(!m||!m[1].trim())return;const n=m[1].trim();totals[known[n.toLowerCase()]||n]=+m[2].replace(/,/g,"")});
+  if(Object.keys(totals).length<2){$("mmsg").textContent="Need at least 2 lines like: Davis 181,989";return}
+  const[y,mo]=id.split("-").map(Number),label=new Date(y,mo-1,1).toLocaleString("en-US",{month:"short"})+" "+y,doc={id,label,days,totals};
+  if(db){try{await db.collection("months").doc(id).set(doc)}catch(e){}}else{months=months.filter(x=>x.id!=id).concat(doc);renderF()}
+  $("mt").value="";$("mmsg").textContent=`Saved ${label} with ${Object.keys(totals).length} people.`;
+};
+loadL();render();renderF();
+(async()=>{try{const u=await window.claude.use("user");OWN=!!(u&&u.isOwner())}catch(e){OWN=false}
+  document.body.classList.toggle("own",OWN);render();
+  try{db=await window.claude.use("db")}catch(e){db=null}
+  if(!db){$("msg").textContent="Shared storage unavailable: saved on this device only.";return}
+  db.collection("comps").onSnapshot(s=>{comps=s.docs.map(d=>d.data());render()},()=>{});
+  db.collection("months").onSnapshot(s=>{months=s.docs.map(d=>d.data());renderF()},()=>{});})();
+</script></body></html>
